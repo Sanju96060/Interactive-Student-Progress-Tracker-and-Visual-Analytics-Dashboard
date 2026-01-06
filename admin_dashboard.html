@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-page">
+
+   <style>
+    body {
+      background-image: url("{{ url_for('static', filename='dashboard.jpg') }}");
+      background-size: cover;
+    }
+  </style>
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="brand">EduBoard </div>
+      <div class="nav-item">
+        <label for="semester" class="sr-only">Semester</label>
+        <select id="semester" name="semester">
+          <option value="" selected disabled>Select semester</option>
+          <option value="sem1">Semester 1</option>
+          <option value="sem2">Semester 2</option>
+          <option value="sem3">Semester 3</option>
+          <option value="sem4">Semester 4</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-actions">
+        <a href="{{ url_for('year1_toppers') }}" class="btn small">1st Year Topper</a>
+        <a href="{{ url_for('year2_toppers') }}" class="btn small">2nd Year Topper</a>
+        <a href="{{ url_for('college_toppers') }}" class="btn small">College Topper</a>
+        <a href="{{ url_for('logout') }}" class="btn outline">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Admin Dashboard</h1>
+  </main>
+
+  <script>
+    (function(){
+      var sel = document.getElementById('semester');
+      if(!sel) return;
+      // Reset selection on load to avoid browsers restoring previous value
+      try { sel.selectedIndex = 0; } catch(e) {}
+      sel.addEventListener('change', function(){
+        var v = this.value;
+        if(v === 'sem1'){
+          window.location.href = "{{ url_for('semester1_dashboard') }}";
+        } else if(v === 'sem2'){
+          window.location.href = "{{ url_for('semester2_dashboard') }}";
+        } else if(v === 'sem3'){
+          window.location.href = "{{ url_for('semester3_dashboard') }}";
+        } else if(v === 'sem4'){
+          window.location.href = "{{ url_for('semester4_dashboard') }}";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

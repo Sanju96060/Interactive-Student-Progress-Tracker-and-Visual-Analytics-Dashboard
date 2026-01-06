@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EduBoard Login Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  
+  <style>
+    body {
+      background-image: url("{{ url_for('static', filename='studentimage.jpg') }}");
+      background-size: cover;
+    }
+  </style>
+  
+  <div class="container">
+    <h1>Interactive Student Progress Tracker</h1>
+    <div class="buttons">
+      <a href="{{ url_for('student_login') }}">Student Login</a>
+      <a href="{{ url_for('admin_login') }}">Admin Login</a>
+    </div>
+  </div>
+</body>
+</html>

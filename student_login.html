@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .form-container {
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+    h2 {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+      text-transform: uppercase;
+    }
+    button[type="submit"] {
+      width: 25%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .back-btn {
+      width: 25%;
+      background-color: #f44336;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .alert {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .alert-danger {
+      background-color: #f44336;
+      color: white;
+    }
+    .alert-success {
+      background-color: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+   <style>
+    body {
+      background-image: url("{{ url_for('static', filename='studentimage.jpg') }}");
+      background-size: cover;
+    }
+  </style>
+  <div class="form-container">
+    <h2>Student Login</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST">
+      <div class="form-group">
+        <input type="text" 
+               name="usn" 
+               placeholder="Enter USN(1AM24MC001)" 
+               required
+               pattern="[A-Za-z0-9]+"
+               title="Please enter your University Seat Number"
+               class="form-control">
+      </div>
+
+      <div class="form-group">
+        <select name="semester" id="semester" class="form-control" required>
+          <option value="">-- Select Semester --</option>
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn">Login</button>
+    </form>
+
+    <form action="{{ url_for('index') }}" method="get">
+      <button type="submit" class="back-btn">Back</button>
+    </form>
+  </div>
+  
+  <script>
+    // Auto-format USN to uppercase
+    document.querySelector('input[name="usn"]').addEventListener('input', function(e) {
+      this.value = this.value.toUpperCase();
+    });
+  </script>
+</body>
+</html>

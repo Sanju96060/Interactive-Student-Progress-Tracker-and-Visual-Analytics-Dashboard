@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Add Marks - EduBoard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body{ font-family: Arial; color:#fff; padding:20px;}
+    .card{background:rgba(255,255,255,0.06); padding:20px; border-radius:8px; max-width:900px; margin:20px auto;}
+    label{display:block; margin-top:10px;}
+    input[type="text"], input[type="number"]{width:100%; padding:8px; border-radius:6px; border:none; margin-top:6px;}
+    .row{display:flex; gap:12px;}
+    .col{flex:1;}
+    button{background:#1976d2; color:#fff; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; margin-top:12px;}
+    .preview{margin-top:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px;}
+    .error{color:#ffcccb; margin-top:8px;}
+    input.invalid { outline: 2px solid rgba(255,0,0,0.6); }
+  </style>
+</head>
+<body class="dashboard-page">
+  <div class="card">
+    <h2>Add Marks (Manual)</h2>
+    <form id="marksForm" method="POST" action="" novalidate>
+      <div class="row">
+        <div class="col">
+          <label>USN *</label>
+          <input name="usn" required />
+        </div>
+        <div class="col">
+          <label>Name *</label>
+          <input name="name" required />
+        </div>
+        <div class="col">
+          <label>Subject *</label>
+          <input name="subject" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>CIE1 (out of 50)</label>
+          <input type="text" inputmode="numeric" id="cie1" name="cie1" value="0" maxlength="2" pattern="\d{1,2}" />
+        </div>
+        <div class="col">
+          <label>CIE2 (out of 50)</label>
+          <input type="text" inputmode="numeric" id="cie2" name="cie2" value="0" maxlength="2" pattern="\d{1,2}" />
+        </div>
+        <div class="col">
+          <label>Assignment 1 (out of 50)</label>
+          <input type="text" inputmode="numeric" id="a1" name="assignment1marks" value="0" maxlength="2" pattern="\d{1,2}" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Assignment 2 (out of 50)</label>
+          <input type="text" inputmode="numeric" id="a2" name="assignment2marks" value="0" maxlength="2" pattern="\d{1,2}" />
+        </div>
+        <div class="col">
+          <label>SEE (out of 100)</label>
+          <input type="text" inputmode="numeric" id="see" name="see" value="0" maxlength="3" pattern="\d{1,3}" />
+        </div>
+      </div>
+      <button type="submit">Submit</button><button type="button" onclick="window.history.back()" style="margin-left:10px;">Back</button>
+      <div class="error" id="clientError" style="display:none;"></div>
+    </form>
+  </div>
+
+<script>
+const limits = {
+  cie1: {min:0, max:50, maxDigits:2},
+  cie2: {min:0, max:50, maxDigits:2},
+  a1:   {min:0, max:50, maxDigits:2},
+  a2:   {min:0, max:50, maxDigits:2},
+  see:  {min:0, max:100, maxDigits:3}
+};
+
+function sanitizeAndLimitInput(el, maxDigits) {
+  let v = el.value.replace(/\D+/g, "");
+  if (v.length > 1 && v.startsWith("0")) {
+    v = v.replace(/^0+/, "");
+    if (v === "") v = "0";
+  }
+  if (v.length > maxDigits) v = v.slice(0, maxDigits);
+  el.value = v === "" ? "" : v;
+}
+
+function validateFieldById(id) {
+  const el = document.getElementById(id);
+  if (!el.value) { el.classList.add("invalid"); return false; }
+  if (!/^\d+$/.test(el.value)) { el.classList.add("invalid"); return false; }
+  const num = parseInt(el.value);
+  const {min,max} = limits[id];
+  if(num < min || num > max){ el.classList.add("invalid"); return false; }
+  el.classList.remove("invalid");
+  return true;
+}
+
+function computeAll(){
+  const cie1 = +document.getElementById('cie1').value||0;
+  const cie2 = +document.getElementById('cie2').value||0;
+  const a1   = +document.getElementById('a1').value||0;
+  const a2   = +document.getElementById('a2').value||0;
+  const see  = +document.getElementById('see').value||0;
+
+  const cieSum = cie1+cie2;
+  const cieFinal = (cieSum/100)*25;
+  const assSum = a1+a2;
+  const assFinal = (assSum/100)*25;
+  const seeFinal = (see/100)*50;
+  const finalTotal = cieFinal+assFinal+seeFinal;
+
+  let grade='F';
+  if(finalTotal>=90) grade='O';
+  else if(finalTotal>=75) grade='A';
+  else if(finalTotal>=55) grade='B';
+  else if(finalTotal>=35) grade='C';
+
+  return {cieSum,cieFinal,assSum,assFinal,seeFinal,finalTotal,grade};
+}
+
+function updatePreview(){
+  const v=computeAll();
+  cieSum.innerText=v.cieSum.toFixed(2);
+  cieFinal.innerText=v.cieFinal.toFixed(2);
+  assSum.innerText=v.assSum.toFixed(2);
+  assFinal.innerText=v.assFinal.toFixed(2);
+  seeFinal.innerText=v.seeFinal.toFixed(2);
+  finalTotal.innerText=v.finalTotal.toFixed(2);
+  grade.innerText=v.grade;
+}
+
+['cie1','cie2','a1','a2','see'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{ sanitizeAndLimitInput(el, limits[id].maxDigits); updatePreview(); });
+});
+
+function validateRequiredTextFields(){
+  let usn=document.querySelector("input[name='usn']").value.trim();
+  let name=document.querySelector("input[name='name']").value.trim();
+  let subject=document.querySelector("input[name='subject']").value.trim();
+  if(usn==="" || name==="" || subject===""){
+    clientError.innerText="Please fill all required fields ";
+    clientError.style.display="block";
+    return false;
+  }
+  return true;
+}
+
+document.getElementById('marksForm').addEventListener('submit',function(e){
+  if(!validateRequiredTextFields()){ e.preventDefault(); return false; }
+
+  let valid=true;
+  ["cie1","cie2","a1","a2","see"].forEach(id=>{ if(!validateFieldById(id)) valid=false; });
+  if(!valid){
+    clientError.innerText="Marks fields invalid. Please fix and submit again.";
+    clientError.style.display="block";
+    e.preventDefault();
+    return false;
+  }
+});
+updatePreview();
+</script>
+</body>
+</html>

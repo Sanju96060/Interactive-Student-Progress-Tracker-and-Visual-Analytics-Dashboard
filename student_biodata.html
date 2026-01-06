@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Biodata | {{ name }} ({{ usn }}) | Sem {{ sem }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body{ font-family: Arial; color:#fff; padding:20px; }
+    .wrap{ max-width: 1500px; margin: 0 auto; }
+    .card{ background: rgba(255,255,255,0.06); padding:16px; border-radius:8px; margin-top:12px; }
+    table{ width:100%; border-collapse:collapse; background:rgba(255,255,255,0.04); }
+    th, td{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; }
+    th{ background: rgba(0,0,0,0.35); position: sticky; top:0; }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
+    .box{ background: rgba(255,255,255,0.06); border-radius:8px; padding:12px; }
+    .label{ font-size:12px; color:#cfd8dc; }
+    .value{ font-weight:600; }
+    a.btn{ display:inline-block; background:#1976d2; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; }
+  </style>
+</head>
+<body class="dashboard-page">
+  <div class="wrap">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div>
+        <h2 style="margin:0;">{{ name }} <span style="font-weight:normal; color:#cfd8dc;"></span></h2>
+        <div style="color:#cfd8dc; font-size:14px;">Semester {{ sem }}</div>
+      </div>
+      <div>
+        <a class="btn" href="{{ url_for('semester%d_dashboard' % sem) }}">Back to Sem {{ sem }}</a>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div class="box">
+        <div class="label">USN</div>
+        <div class="value">{{ usn }}</div>
+      </div>
+      <div class="box">
+        <div class="label">Subjects Attempted</div>
+        <div class="value">{{ data|length }}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px 0;">Marks by Subject</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>CIE1</th>
+            <th>CIE2</th>
+            <th>CIE Final (25)</th>
+            <th>Assign1</th>
+            <th>Assign2</th>
+            <th>Assign Final (25)</th>
+            <th>SEE</th>
+            <th>SEE Final (50)</th>
+            <th>Final (150)</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.subject }}</td>
+            <td>{{ '%.2f'|format(row.cie1 if row.cie1 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.cie2 if row.cie2 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.cie_total50 if row.cie_total50 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.assignment1marks if row.assignment1marks is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.assignment2marks if row.assignment2marks is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.ass_total50 if row.ass_total50 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.see if row.see is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.see_total50 if row.see_total50 is not none else 0) }}</td>
+            <td><b>{{ '%.2f'|format(row.final_total100 if row.final_total100 is not none else 0) }}</b></td>
+            <td>{{ row.grade }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Performance Chart Section -->
+    <div class="card" style="margin-top: 20px;">
+      <h3 style="margin:0 0 16px 0;">Performance Analysis Across Subjects</h3>
+      
+      {% if data|length > 1 %}
+      <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start;">
+        <!-- Chart Container -->
+        <div style="height: 400px; position: relative;">
+          <canvas id="performanceChart"></canvas>
+        </div>
+        
+        <!-- Performance Summary -->
+        <div class="box" style="background: rgba(255,255,255,0.08);">
+          <h4 style="margin:0 0 12px 0; color: #fff;">Performance Summary</h4>
+          <div id="performanceTrend" style="margin-bottom: 12px;"></div>
+          <div id="performanceStats" style="font-size: 14px; line-height: 1.6;"></div>
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 40px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <p style="color: #cfd8dc; margin: 0;">📊 Need at least 2 subjects to analyze performance trend</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Chart.js Script -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var performanceData = {{ data|tojson }};
+      
+      if (performanceData.length > 1) {
+        var ctx = document.getElementById('performanceChart').getContext('2d');
+        
+        // Prepare data for chart
+        var subjects = performanceData.map(function(item) { 
+          return item.subject.length > 15 ? item.subject.substring(0, 15) + '...' : item.subject; 
+        });
+        var scores = performanceData.map(function(item) { 
+          return item.final_total100 || 0; 
+        });
+        var grades = performanceData.map(function(item) { 
+          return item.grade || 'N/A'; 
+        });
+        
+        // Calculate trend
+        var firstScore = scores[0];
+        var lastScore = scores[scores.length - 1];
+        var trend = '';
+        var trendColor = '';
+        var trendIcon = '';
+        
+        if (lastScore > firstScore + 5) {
+          trend = 'Improving';
+          trendColor = '#4caf50';
+          trendIcon = '📈';
+        } else if (lastScore < firstScore - 5) {
+          trend = 'Declining';
+          trendColor = '#f44336';
+          trendIcon = '📉';
+        } else {
+          trend = 'Stable';
+          trendColor = '#ff9800';
+          trendIcon = '➡️';
+        }
+        
+        // Calculate statistics
+        var avgScore = scores.reduce(function(a, b) { return a + b; }, 0) / scores.length;
+        var maxScore = Math.max.apply(Math, scores);
+        var minScore = Math.min.apply(Math, scores);
+        var passedCount = grades.filter(function(g) { return g !== 'F'; }).length;
+        var passPercentage = (passedCount / grades.length * 100).toFixed(1);
+        
+        // Update trend display
+        document.getElementById('performanceTrend').innerHTML = 
+          '<div style="display: flex; align-items: center; gap: 8px;">' +
+          '<span style="font-size: 24px;">' + trendIcon + '</span>' +
+          '<div>' +
+          '<div style="font-weight: 600; color: ' + trendColor + ';">' + trend + '</div>' +
+          '<div style="font-size: 12px; color: #cfd8dc;">Overall Trend</div>' +
+          '</div>' +
+          '</div>';
+        
+        // Update statistics
+        document.getElementById('performanceStats').innerHTML = 
+          '<div style="margin-bottom: 8px;"><strong>Average Score:</strong> ' + avgScore.toFixed(1) + '/100</div>' +
+          '<div style="margin-bottom: 8px;"><strong>Highest Score:</strong> ' + maxScore.toFixed(1) + '/100</div>' +
+          '<div style="margin-bottom: 8px;"><strong>Lowest Score:</strong> ' + minScore.toFixed(1) + '/100</div>' +
+          '<div style="margin-bottom: 8px;"><strong>Pass Rate:</strong> ' + passPercentage + '%</div>' +
+          '<div><strong>Subjects Passed:</strong> ' + passedCount + '/' + grades.length + '</div>';
+        
+        // Create chart
+        var chartConfig = {
+          type: 'line',
+          data: {
+            labels: subjects,
+            datasets: [{
+              label: 'Final Score',
+              data: scores,
+              backgroundColor: 'rgba(33, 150, 243, 0.2)',
+              borderColor: 'rgba(33, 150, 243, 1)',
+              borderWidth: 3,
+              pointBackgroundColor: 'rgba(33, 150, 243, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  color: '#fff',
+                  stepSize: 20
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#fff',
+                  maxRotation: 45,
+                  minRotation: 45
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#fff'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Performance Trend Across Subjects',
+                color: '#fff',
+                font: {
+                  size: 16
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  afterLabel: function(context) {
+                    var index = context.dataIndex;
+                    return 'Grade: ' + grades[index];
+                  }
+                }
+              }
+            }
+          }
+        };
+        
+        new Chart(ctx, chartConfig);
+      }
+  });
+  </script>
+</body>
+</html>

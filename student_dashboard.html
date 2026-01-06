@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - {{ name }} ({{ usn }})</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .student-info {
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .btn-logout {
+      background-color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Student Dashboard</h1>
+      <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+    </div>
+    
+    <div class="student-info">
+      <h2>{{ name }} <small>({{ usn }})</small></h2>
+      <p>Semester: {{ sem }}</p>
+    </div>
+    
+    <h3>Subject-wise Performance</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>CIE 1</th>
+          <th>CIE 2</th>
+          <th>Assignment 1</th>
+          <th>Assignment 2</th>
+          <th>SEE</th>
+          <th>Total</th>
+          <th>Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for subject in subjects %}
+        <tr>
+          <td>{{ subject.subject }}</td>
+          <td>{{ "%.2f"|format(subject.cie1|default(0)) }}</td>
+          <td>{{ "%.2f"|format(subject.cie2|default(0)) }}</td>
+          <td>{{ "%.2f"|format(subject.assignment1marks|default(0)) }}</td>
+          <td>{{ "%.2f"|format(subject.assignment2marks|default(0)) }}</td>
+          <td>{{ "%.2f"|format(subject.see|default(0)) }}</td>
+          <td>{{ "%.2f"|format(subject.final_total100|default(0)) }}</td>
+          <td>{{ subject.grade|default('N/A') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

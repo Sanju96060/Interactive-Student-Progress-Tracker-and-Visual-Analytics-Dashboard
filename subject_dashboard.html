@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Subject | Sem {{ sem }} | {{ subject }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body{ font-family: Arial; color:#fff; padding:20px; }
+    .wrap{ max-width: 1200px; margin: 0 auto; }
+    .card{ background: rgba(255,255,255,0.06); padding:16px; border-radius:8px; }
+    table{ width:100%; border-collapse:collapse; margin-top:16px; background:rgba(255,255,255,0.04); }
+    th, td{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; }
+    th{ background: rgba(0,0,0,0.35); position: sticky; top:0; }
+    a.btn{ display:inline-block; background:#1976d2; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; }
+    .muted{ color:#cfd8dc; font-size: 14px; }
+  </style>
+<style>
+    .even-row {
+      background: rgba(255,255,255,0.02);
+    }
+  </style>
+</head>
+<body class="dashboard-page">
+  <div class="wrap">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div style="background: rgba(76, 175, 80, 0.2); border: 1px solid #4caf50; color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+      <div>
+        <h2 style="margin:0;">Semester {{ sem }} · Subject: {{ subject }}</h2>
+        <div class="muted">Total records: {{ data|length }}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <a class="btn" href="{{ url_for('semester%d_dashboard' % sem) }}">Back to Sem {{ sem }}</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>USN</th>
+            <th>Name</th>
+            <th>CIE1</th>
+            <th>CIE2</th>
+            <th>CIE Final (25)</th>
+            <th>Assign1</th>
+            <th>Assign2</th>
+            <th>Assign Final (25)</th>
+            <th>SEE</th>
+            <th>SEE Final (50)</th>
+            <th>Final (100)</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.usn }}</a></td>
+            <td>{{ row.name }}</a></td>
+            <td>{{ '%.2f'|format(row.cie1 if row.cie1 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.cie2 if row.cie2 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.cie_total50 if row.cie_total50 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.assignment1marks if row.assignment1marks is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.assignment2marks if row.assignment2marks is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.ass_total50 if row.ass_total50 is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.see if row.see is not none else 0) }}</td>
+            <td>{{ '%.2f'|format(row.see_total50 if row.see_total50 is not none else 0) }}</td>
+            <td><b>{{ '%.2f'|format(row.final_total100 if row.final_total100 is not none else 0) }}</b></td>
+            <td>{{ row.grade }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Fail Analysis Section -->
+    {% if fail_stats %}
+    <div style="margin-top: 40px;">
+      <h3 style="margin-bottom: 20px; color: #e74c3c;">Fail Analysis - Student Summary</h3>
+      
+      <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <!-- Bar Chart (Left Side) -->
+        <div style="flex: 1; min-width: 400px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+          <h4 style="margin-bottom: 15px; text-align: center;">Fail Count Distribution</h4>
+          <div style="height: 300px; position: relative;">
+            <canvas id="failChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Summary Table (Right Side) -->
+        <div style="flex: 1; min-width: 300px;">
+          <h4 style="margin-bottom: 15px;">Students with Failures</h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background: rgba(231, 76, 60, 0.2);">
+                <th style="padding: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">USN</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Name</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">Failed Subjects</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in fail_stats %}
+              <tr class="{% if loop.index % 2 == 0 %}even-row{% endif %}">
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); font-weight: bold;">{{ student.usn }}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">{{ student.name }}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                  <span style="background: rgba(231, 76, 60, 0.3); padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                    {{ student.fail_count }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          
+          <!-- Summary Stats -->
+          <div style="margin-top: 20px; padding: 15px; background: rgba(231, 76, 60, 0.1); border-radius: 6px; border: 1px solid rgba(231, 76, 60, 0.3);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>Total Students Failed:</span>
+              <strong>{{ fail_stats|length }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Total Failed Subjects:</span>
+              <strong>{{ fail_stats|sum(attribute='fail_count') }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Chart.js Script -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('failChart').getContext('2d');
+        var chartData = {{ chart_data|tojson }};
+        
+        var labels = chartData.map(function(item) { 
+          return item.usn + '\n' + item.name.substring(0, 10) + (item.name.length > 10 ? '...' : ''); 
+        });
+        
+        var data = chartData.map(function(item) { 
+          return item.fail_count; 
+        });
+        
+        var chartConfig = {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Failed Subjects',
+              data: data,
+              backgroundColor: 'rgba(231, 76, 60, 0.6)',
+              borderColor: 'rgba(231, 76, 60, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  color: '#fff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#fff',
+                  maxRotation: 45,
+                  minRotation: 45
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#fff'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Number of Failed Subjects per Student',
+                color: '#fff',
+                font: {
+                  size: 14
+                }
+              }
+            }
+          }
+        };
+        
+        new Chart(ctx, chartConfig);
+      });
+    </script>
+    {% else %}
+    <div style="margin-top: 40px; text-align: center; padding: 20px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; border: 1px solid rgba(46, 204, 113, 0.3);">
+      <h4 style="color: #2ecc71; margin: 0;">🎉 No failures in this subject! All students passed.</h4>
+    </div>
+    {% endif %}
+    
+    <!-- Top 10 Students Section -->
+    {% if top_stats %}
+    <div style="margin-top: 40px;">
+      <h3 style="margin-bottom: 20px; color: #f39c12;">🏆 Top 10 Students - Performance Analysis</h3>
+      
+      <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <!-- Line Chart (Left Side) -->
+        <div style="flex: 1; min-width: 400px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+          <h4 style="margin-bottom: 15px; text-align: center;">Performance Trend</h4>
+          <div style="height: 300px; position: relative;">
+            <canvas id="topChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Summary Table (Right Side) -->
+        <div style="flex: 1; min-width: 300px;">
+          <h4 style="margin-bottom: 15px;">Top Performers</h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background: rgba(243, 156, 18, 0.2);">
+                <th style="padding: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Rank</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">USN</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Name</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">Score</th>
+                <th style="padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in top_stats %}
+              <tr class="{% if loop.index % 2 == 0 %}even-row{% endif %}">
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center; font-weight: bold;">
+                  {% if loop.index == 1 %}🥇
+                  {% elif loop.index == 2 %}🥈
+                  {% elif loop.index == 3 %}🥉
+                  {% else %}{{ loop.index }}{% endif %}
+                </td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); font-weight: bold;">{{ student.usn }}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">{{ student.name }}</td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                  <span style="background: rgba(243, 156, 18, 0.3); padding: 4px 8px; border-radius: 4px; font-weight: bold;">
+                    {{ '%.1f'|format(student.final_total100) }}
+                  </span>
+                </td>
+                <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                  <span style="background: rgba(46, 204, 113, 0.3); padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #2ecc71;">
+                    {{ student.grade }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          
+          <!-- Summary Stats -->
+          <div style="margin-top: 20px; padding: 15px; background: rgba(243, 156, 18, 0.1); border-radius: 6px; border: 1px solid rgba(243, 156, 18, 0.3);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>Highest Score:</span>
+              <strong>{{ '%.1f'|format(top_stats[0].final_total100) }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span>Average Top 10 Score:</span>
+              <strong>{{ '%.1f'|format((top_stats|sum(attribute='final_total100') / top_stats|length)) }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>10th Position Score:</span>
+              <strong>{{ '%.1f'|format(top_stats[-1].final_total100) }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Top Students Chart Script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('topChart').getContext('2d');
+        var topChartData = {{ top_chart_data|tojson }};
+        
+        var labels = topChartData.map(function(item, index) { 
+          return 'Rank ' + (index + 1); 
+        });
+        
+        var data = topChartData.map(function(item) { 
+          return item.final_total100; 
+        });
+        
+        var chartConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Total Score',
+              data: data,
+              backgroundColor: 'rgba(243, 156, 18, 0.2)',
+              borderColor: 'rgba(243, 156, 18, 1)',
+              borderWidth: 2,
+              pointBackgroundColor: 'rgba(243, 156, 18, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: false,
+                min: 50,
+                ticks: {
+                  color: '#fff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#fff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#fff'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Top 10 Students Performance Scores',
+                color: '#fff',
+                font: {
+                  size: 14
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    var index = context.dataIndex;
+                    var student = topChartData[index];
+                    return [
+                      'USN: ' + student.usn,
+                      'Name: ' + student.name,
+                      'Score: ' + student.final_total100.toFixed(1) + '/100',
+                      'Grade: ' + student.grade
+                    ];
+                  }
+                }
+              }
+            }
+          }
+        };
+        
+        new Chart(ctx, chartConfig);
+      });
+    </script>
+    {% else %}
+    <div style="margin-top: 40px; text-align: center; padding: 20px; background: rgba(149, 165, 166, 0.1); border-radius: 8px; border: 1px solid rgba(149, 165, 166, 0.3);">
+      <h4 style="color: #95a5a6; margin: 0;">📊 No student data available for top performers analysis.</h4>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Semester {{ sem_number }} - EduBoard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dashboard-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="brand">Semester {{ sem_number }}</div>
+    </div>
+    <div class="nav-right">
+      <a href="{{ url_for('faculty_dashboard') }}" class="btn small">Back to Faculty Dashboard</a>
+      <a href="{{ url_for('logout') }}" class="btn outline">Logout</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Semester {{ sem_number }}</h1>
+    <p>Select options or actions for this semester.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Year 2 Toppers - EduBoard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body { margin: 0; color: #fff; font-family: 'Poppins', sans-serif; }
+    .page { max-width: 1100px; margin: 28px auto; padding: 0 16px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    table{ width:100%; border-collapse:collapse; margin-top:16px; background:rgba(255,255,255,0.04); border-radius:8px; overflow:hidden;}
+    th,td{ padding:10px 12px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.06);}
+    th{ background:rgba(0,0,0,0.35); position:sticky; top:0; z-index:1;}
+    .grid { display:grid; grid-template-columns: 1fr; gap: 20px; margin-top: 18px; }
+    @media (min-width: 900px) { .grid { grid-template-columns: 1.4fr 1fr; } }
+    .card { background: rgba(255,255,255,0.06); padding: 16px; border-radius: 12px; }
+    .chart-section { margin-top: 40px; background: rgba(255,255,255,0.06); padding: 20px; border-radius: 12px; }
+    .chart-container { position: relative; height: 300px; width: 100%; }
+    
+    /* Print styles */
+    @media print {
+      .navbar, .btn, button { display: none !important; }
+      body { background: white; color: black; padding: 20px; }
+      .page { margin: 0; padding: 0; max-width: 100%; }
+      table { width: 100%; border: 1px solid #000; }
+      th { background: #f0f0f0 !important; color: #000 !important; }
+      .card { background: #fff !important; color: #000 !important; border: 1px solid #ddd; }
+      .chart-section { background: #fff !important; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body class="dashboard-page">
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="brand">Year 2 Toppers</div>
+    </div>
+    <div class="nav-right">
+      <button onclick="window.print()" style="background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Print</button>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn outline">Back</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="topbar">
+      <h1>Top Students (Combined Semester 3 and 4)</h1>
+    </div>
+
+    {% if toppers and toppers|length > 0 %}
+    <div class="card">
+      <h2>Top 10 (by average final across subjects & semesters)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>USN</th>
+            <th>Name</th>
+            <th>Sem3 %</th>
+            <th>Sem4 %</th>
+            <th>High/Low</th>
+            <th>Difference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in toppers %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.usn }}</td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.sem3_percent }}</td>
+            <td>{{ row.sem4_percent }}</td>
+            <td>
+              {% if row.comparison == "High" %}
+                <span style="color: #4CAF50;">▲ {{ row.comparison }}</span>
+              {% elif row.comparison == "Low" %}
+                <span style="color: #f44336;">▼ {{ row.comparison }}</span>
+              {% else %}
+                <span style="color: #FF9800;">→ {{ row.comparison }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.comparison == "High" %}
+                <span style="color: #4CAF50;">{{ row.difference }}</span>
+              {% elif row.comparison == "Low" %}
+                <span style="color: #f44336;">{{ row.difference }}</span>
+              {% else %}
+                <span style="color: #FF9800;">{{ row.difference }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Line Chart Section -->
+    <div class="chart-section">
+      <h2>Semester-wise Performance Analysis</h2>
+      <div class="chart-container">
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+    {% else %}
+      <p>No data available for Semester 3 and 4.</p>
+    {% endif %}
+  </main>
+
+  <script id="line-data" type="application/json">{{ line_chart_data | tojson }}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function(){
+      // Line Chart
+      var lineData = [];
+      try {
+        lineData = JSON.parse(document.getElementById('line-data').textContent || '[]');
+      } catch (e) { lineData = []; }
+      if(!lineData || lineData.length === 0) return;
+      
+      var lineCtx = document.getElementById('lineChart');
+      if(!lineCtx) return;
+      
+      var names = lineData.map(function(x){ return x.name; });
+      var sem3Data = lineData.map(function(x){ return x.sem3; });
+      var sem4Data = lineData.map(function(x){ return x.sem4; });
+      var avgData = lineData.map(function(x){ return x.average; });
+      
+      new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: names,
+          datasets: [
+            {
+              label: 'Semester 3 %',
+              data: sem3Data,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderWidth: 2,
+              tension: 0.1
+            },
+            {
+              label: 'Semester 4 %',
+              data: sem4Data,
+              borderColor: 'rgba(255, 99, 132, 1)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderWidth: 2,
+              tension: 0.1
+            },
+            {
+              label: 'Average %',
+              data: avgData,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderWidth: 3,
+              tension: 0.1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            title: {
+              display: true,
+              text: 'Student Performance Across Semesters'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                stepSize: 25,
+                callback: function(value) {
+                  return value + '%';
+                }
+              },
+              title: {
+                display: true,
+                text: 'Percentage (%)'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Student Names'
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

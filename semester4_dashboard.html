@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EduBoard | Semester 4 Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+  body{ margin:0; font-family:'Poppins',sans-serif; color:#fff;}
+    .layout{ display:flex; min-height:100vh; }
+
+    /* SIDEBAR */
+    .sidebar{
+      width:120px; background:rgba(0,0,0,0.35); padding:15px; box-sizing:border-box;
+      position:fixed; top:0; left:0; height:100vh; overflow:auto;
+    }
+    .sidebar h2{ margin-top:0; font-size:20px; }
+    .side-btn{
+      width:100%; display:block; background:#1976d2; padding:10px; text-align:center; border-radius:6px; margin-bottom:10px; cursor:pointer; border:none; color:#fff; text-decoration:none;
+    }
+
+    /* MAIN AREA */
+    .content{
+      flex:1; padding:20px; margin-left:120px; padding-top:84px;
+    }
+    .top-bar{
+      position:fixed; top:0; left:120px; right:0; z-index:1000;
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 20px; background:rgba(0,0,0,0.35);
+      box-sizing:border-box;
+    }
+    h1{ margin:0; text-align:center; flex:1;}
+    .upload-form{ background:rgba(255,255,255,0.06); padding:12px; border-radius:8px; display:flex; gap:10px; align-items:center;}
+    input[type=file]{ padding:8px; border-radius:6px; background:#fff; color:#000; }
+    button{ padding:8px 12px; border-radius:6px; border:none; cursor:pointer; background:#1976d2; color:#fff;}
+    table{ width:100%; border-collapse:collapse; margin-top:20px; background:rgba(255,255,255,0.04); border-radius:8px; table-layout: auto; }
+    th,td{ padding:10px 12px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+    th{ background:rgba(0,0,0,0.35); position:sticky; top:0; z-index:1;}
+    tr:hover{ background:rgba(255,255,255,0.02);}   
+    .grade-O{ background:#2e7d32; color:#fff; padding:6px 8px; border-radius:6px; display:inline-block;}
+    .grade-A{ background:#388e3c; color:#fff; padding:6px 8px; border-radius:6px; display:inline-block;}
+    .grade-B{ background:#f57f17; color:#fff; padding:6px 8px; border-radius:6px; display:inline-block;}
+    .grade-C{ background:#f9a825; color:#000; padding:6px 8px; border-radius:6px; display:inline-block;}
+    .grade-F{ background:#c62828; color:#fff; padding:6px 8px; border-radius:6px; display:inline-block;}
+    .flash{ text-align:center; color:#ffe082; margin-top:10px;}
+    
+    /* Print styles */
+    @media print {
+      .sidebar, .top-bar, button, .btn, .side-btn, .actions { display: none !important; }
+      .content { margin-left: 0 !important; padding: 20px !important; }
+      body { background: white; color: black; }
+      table { width: 100%; border: 1px solid #000; }
+      th { background: #f0f0f0 !important; color: #000 !important; }
+      .grade-O, .grade-A, .grade-B, .grade-C, .grade-F { color: #000 !important; padding: 2px 5px; }
+      #mainTable { max-height: none !important; overflow: visible !important; }
+    }
+
+    /* Prevent USN from overlapping Name */
+    /* USN column (2nd): keep on one line and ellipsize if too long */
+    thead th:nth-child(2), tbody td:nth-child(2){
+      white-space:nowrap; text-overflow:ellipsis; max-width:160px;
+    }
+    /* Name column (3rd): allow wrapping within its cell */
+    thead th:nth-child(3), tbody td:nth-child(3){
+      white-space:normal; word-break:break-word; overflow-wrap:anywhere;
+      min-width:180px;
+    }
+
+    /* Make sections scroll inside, not the whole page */
+    #mainTable, #top10Section, #bottom10Section{
+      max-height: calc(100vh - 160px);
+      overflow:auto;
+      overscroll-behavior: contain;
+    }
+  </style>
+</head>
+<body class="dashboard-page">
+<div class="layout">
+  <div class="sidebar">
+    <h2>Semester 4</h2>
+    <a class="side-btn" href="{{ url_for('add_marks_sem4') }}">Add Manually</a>
+    <button class="side-btn" onclick="showSection('top10Section')">Top 10</button>
+    <button class="side-btn" onclick="showSection('bottom10Section')">Bottom 10</button>
+    <button class="side-btn" onclick="window.print()" style="background: #4caf50;">Print</button>
+    
+    <!-- Subject-wise Navigation -->
+    <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.2); padding-top:10px;">
+      <h3 style="margin:0 0 10px 0; font-size:14px;">Subjects</h3>
+      <button class="side-btn" onclick="showSubject('all')" style="background:#555;">All Subjects</button>
+      {% for s in subjects[:5] %}
+        <button class="side-btn" onclick="showSubject('sub{{ loop.index0 }}')" style="background:#444; font-size:12px;">{{ s }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="content">
+    <div class="top-bar">
+      <h1>EduBoard Semester 4 Dashboard</h1>
+      <div>
+        <form id="excelUpload" action="{{ url_for('upload_student_excel_sem4') }}" method="POST" enctype="multipart/form-data" style="display:inline;">
+          <input type="file" name="excel" accept=".xlsx" required>
+          <button type="submit">Upload Excel</button>
+        </form>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn outline" style="margin-left:10px;">Back</a>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-left:12px;">
+        <a href="{{ url_for('semester1_dashboard') }}" class="btn small">Sem 1</a>
+        <a href="{{ url_for('semester2_dashboard') }}" class="btn small">Sem 2</a>
+        <a href="{{ url_for('semester3_dashboard') }}" class="btn small">Sem 3</a>
+        <a href="{{ url_for('semester4_dashboard') }}" class="btn small">Sem 4</a>
+        <a href="{{ url_for('logout') }}" class="btn outline">Logout</a>
+      </div>
+    </div>
+      {% for s in subjects[:5] %}
+      <div id="subject_sub{{ loop.index0 }}" style="display:none; margin-top:10px;">
+        <h2 style="margin:8px 0;">Subject: <a href="{{ url_for('subject_dashboard', sem=4, subject_enc=s|urlencode) }}" style="color:#90caf9; text-decoration:underline;">{{ s }}</a></h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>USN</th><th>Name</th><th>Subject</th><th>CIE1</th><th>CIE2</th><th>CIE Final (25)</th>
+              <th>Assign1</th><th>Assign2</th><th>Assign Final (25)</th><th>SEE (100)</th><th>SEE Final (50)</th><th>Final (displayed)</th><th>Grade</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data if row.subject == s %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td><a href="{{ url_for('student_biodata', sem=4, usn=row.usn) }}">{{ row.usn }}</a></td>
+              <td>{{ row.name }}</td>
+              <td>{{ row.subject }}</td>
+              <td>{{ "%.2f"|format(row.cie1 if row.cie1 is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.cie2 if row.cie2 is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.cie_total50 if row.cie_total50 is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.assignment1marks if row.assignment1marks is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.assignment2marks if row.assignment2marks is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.ass_total50 if row.ass_total50 is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.see if row.see is not none else 0) }}</td>
+              <td>{{ "%.2f"|format(row.see_total50 if row.see_total50 is not none else 0) }}</td>
+              <td><b>{{ "%.2f"|format(row.final_total100 if row.final_total100 is not none else 0) }}</b></td>
+              <td>
+                {% if row.grade == 'O' %}
+                  <span class="grade-O">O</span>
+                {% elif row.grade == 'A' %}
+                  <span class="grade-A">A</span>
+                {% elif row.grade == 'B' %}
+                  <span class="grade-B">B</span>
+                {% elif row.grade == 'C' %}
+                  <span class="grade-C">C</span>
+                {% else %}
+                  <span class="grade-F">{{ row.grade }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <form action="{{ url_for('delete_student', sem=4) }}" method="POST" onsubmit="return confirm('Delete this record?');" style="display:inline;">
+                  <input type="hidden" name="id" value="{{ row.id }}">
+                  <button type="submit" style="background:#c62828; padding:6px 10px; border-radius:6px;">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+    <div id="mainTable">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>USN</th><th>Name</th><th>Subject</th><th>CIE1</th><th>CIE2</th><th>CIE Final (25)</th>
+            <th>Assign1</th><th>Assign2</th><th>Assign Final (25)</th><th>SEE (100)</th><th>SEE Final (50)</th><th>Final (displayed)</th><th>Grade</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><a href="{{ url_for('student_biodata', sem=4, usn=row.usn) }}">{{ row.usn }}</a></td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.subject }}</td>
+            <td>{{ "%.2f"|format(row.cie1 if row.cie1 is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.cie2 if row.cie2 is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.cie_total50 if row.cie_total50 is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.assignment1marks if row.assignment1marks is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.assignment2marks if row.assignment2marks is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.ass_total50 if row.ass_total50 is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.see if row.see is not none else 0) }}</td>
+            <td>{{ "%.2f"|format(row.see_total50 if row.see_total50 is not none else 0) }}</td>
+            <td><b>{{ "%.2f"|format(row.final_total100 if row.final_total100 is not none else 0) }}</b></td>
+            <td>
+              {% if row.grade == 'O' %}
+                <span class="grade-O">O</span>
+              {% elif row.grade == 'A' %}
+                <span class="grade-A">A</span>
+              {% elif row.grade == 'B' %}
+                <span class="grade-B">B</span>
+              {% elif row.grade == 'C' %}
+                <span class="grade-C">C</span>
+              {% else %}
+                <span class="grade-F">{{ row.grade }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <form action="{{ url_for('delete_student', sem=4) }}" method="POST" onsubmit="return confirm('Delete this record?');" style="display:inline;">
+                <input type="hidden" name="id" value="{{ row.id }}">
+                <button type="submit" style="background:#c62828; padding:6px 10px; border-radius:6px;">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div id="top10Section" style="display:none;">
+      <h2>Top 10 Highest Scored Students</h2>
+      <table>
+        <thead>
+          <tr><th>USN</th><th>Name</th><th>Subject</th><th>Final Total</th><th>Grade</th></tr>
+        </thead>
+        <tbody>
+        {% for s in top10 %}
+          <tr>
+            <td>{{ s.usn }}</td>
+            <td>{{ s.name }}</td>
+            <td>{{ s.subject }}</td>
+            <td>{{ "%.2f"|format(s.final_total100) }}</td>
+            <td>{{ s.grade }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:16px; display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+        <canvas id="topBar"></canvas>
+      </div>
+    </div>
+    <div id="bottom10Section" style="display:none;">
+      <h2>Lowest 10 Scored Students</h2>
+      <table>
+        <thead>
+          <tr><th>USN</th><th>Name</th><th>Subject</th><th>Final Total</th><th>Grade</th></tr>
+        </thead>
+        <tbody>
+        {% for s in bottom10 %}
+          <tr>
+            <td>{{ s.usn }}</td>
+            <td>{{ s.name }}</td>
+            <td>{{ s.subject }}</td>
+            <td>{{ "%.2f"|format(s.final_total100) }}</td>
+            <td>{{ s.grade }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:16px; display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+        <canvas id="bottomBar"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<script id="top10-data" type="application/json">{{ top10 | tojson }}</script>
+<script id="bottom10-data" type="application/json">{{ bottom10 | tojson }}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function showSection(sectionID){
+  document.getElementById('mainTable').style.display = "none";
+  document.getElementById('top10Section').style.display = "none";
+  document.getElementById('bottom10Section').style.display = "none";
+  document.getElementById(sectionID).style.display = "block";
+  if(sectionID === 'top10Section' && !window.__topChartsInit){ initTopCharts(); window.__topChartsInit = true; }
+  if(sectionID === 'bottom10Section' && !window.__bottomChartsInit){ initBottomCharts(); window.__bottomChartsInit = true; }
+  var toolbar = document.getElementById('subjectToolbar');
+  var blocks = document.querySelectorAll('[id^="subject_sub"]');
+  if(sectionID === 'mainTable'){
+    if(toolbar) toolbar.style.display = 'flex';
+    blocks.forEach(function(el){ el.style.display = 'none'; });
+  } else {
+    if(toolbar) toolbar.style.display = 'none';
+    blocks.forEach(function(el){ el.style.display = 'none'; });
+  }
+}
+function showSubject(key){
+  var all = document.getElementById('mainTable');
+  if(!all) return;
+  var blocks = document.querySelectorAll('[id^="subject_sub"]');
+  all.style.display = (key === 'all') ? 'block' : 'none';
+  blocks.forEach(function(el){ el.style.display = 'none'; });
+  if(key !== 'all'){
+    var el = document.getElementById('subject_' + key);
+    if(el){ el.style.display = 'block'; }
+  }
+}
+function initTopCharts(){
+  var top = [];
+  try { top = JSON.parse(document.getElementById('top10-data').textContent || '[]'); } catch(e) { top = []; }
+  var labels = top.map(function(x){ return x.name; });
+  var values = top.map(function(x){ return x.final_total100; });
+  var valuesPct = values.map(function(v){ return Math.max(0, Math.min(100, (v/100)*100)); });
+  var bg = labels.map(function(_,i){ return 'hsl(' + (i*36%360) + ',70%,55%)'; });
+  var ctxBar = document.getElementById('topBar').getContext('2d');
+  new Chart(ctxBar, { type: 'bar', data: { labels: labels, datasets: [ { label: 'Final %', data: valuesPct, backgroundColor: bg } ] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { 'y': { beginAtZero: true, max: 100 } } } });
+}
+function initBottomCharts(){
+  var bottom = [];
+  try { bottom = JSON.parse(document.getElementById('bottom10-data').textContent || '[]'); } catch(e) { bottom = []; }
+  var labels = bottom.map(function(x){ return x.name; });
+  var values = bottom.map(function(x){ return x.final_total100; });
+  var valuesPct = values.map(function(v){ return Math.max(0, Math.min(100, (v/100)*100)); });
+  var bg = labels.map(function(_,i){ return 'hsl(' + (i*36%360) + ',70%,55%)'; });
+  var ctxBar = document.getElementById('bottomBar').getContext('2d');
+  new Chart(ctxBar, { type: 'bar', data: { labels: labels, datasets: [ { label: 'Final %', data: valuesPct, backgroundColor: bg } ] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { 'y': { beginAtZero: true, max: 100 } } } });
+}
+</script>
+</body>
+</html>
